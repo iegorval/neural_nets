@@ -45,7 +45,7 @@ def gradient_descent_optimizer(X, y, W, b, alpha, num_iterations):
         # update rule
         W -= alpha * dW
         b -= alpha * db
-        costs.append(cost)
+        costs.append(float(cost))
     params = (W, b, dW, db)
     return params, costs
 
