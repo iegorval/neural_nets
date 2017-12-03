@@ -5,7 +5,7 @@ import utils
 num_of_examples = 100
 num_of_features = 3197
 num_iterations = 100
-alpha = 0.1
+alpha = 0.001
 
 if __name__ == '__main__':
     X, y = utils.load_train_set(num_of_examples)
