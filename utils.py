@@ -28,6 +28,8 @@ def _load_set(max_num_records, f_name):
         threads = tf.train.start_queue_runners(coord=coord)
         for i in range(max_num_records):
             example, label = sess.run([features, labels])
+            if label == 2:
+                label = 0
             set_x = np.append(set_x, [example], axis=0)
             set_y = np.append(set_y, [label], axis=0)
         coord.request_stop()
