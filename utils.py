@@ -2,6 +2,22 @@ import tensorflow as tf
 import numpy as np
 
 
+def linear_sep_data(num_of_examples):
+    n = int(num_of_examples / 2)
+    c1 = (np.random.rand(2, n)*2-1) / 2
+    c2 = (np.random.rand(2, n)*2-1) / 2
+    c1[0] -= 0.5
+    c1[1] += 0.5
+    c2[0] += 0.5
+    c2[1] -= 0.5
+    inputs = []
+    for i in range(c1.shape[1]):
+        inputs.append([c1[0][i], c1[1][i], 1])
+        inputs.append([c2[0][i], c2[1][i], 0])
+    data_set = np.array(inputs)
+    return data_set
+
+
 def read_file(f_queue):
     reader = tf.TextLineReader(skip_header_lines=1)
     # read - reads a single line from the file
@@ -19,7 +35,7 @@ def read_file(f_queue):
 def _load_set(max_num_records, f_name):
     f_queue = tf.train.string_input_producer([f_name])
     features, labels = read_file(f_queue)
-    set_x = np.empty((0, 3197), float)
+    set_x = np.empty((0, 7), float)
     set_y = np.empty((0,), int)
     with tf.Session() as sess:
         coord = tf.train.Coordinator()
@@ -28,9 +44,10 @@ def _load_set(max_num_records, f_name):
         threads = tf.train.start_queue_runners(coord=coord)
         for i in range(max_num_records):
             example, label = sess.run([features, labels])
+            example_short = example[:7]
             if label == 2:
                 label = 0
-            set_x = np.append(set_x, [example], axis=0)
+            set_x = np.append(set_x, [example_short], axis=0)
             set_y = np.append(set_y, [label], axis=0)
         coord.request_stop()
         coord.join(threads)
