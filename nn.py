@@ -38,7 +38,6 @@ def backward_prop_1layer(X, a, y):
 
 def gradient_descent_optimizer(X, y, W, b, alpha, num_iterations):
     costs = []
-    i = 1
     for i in range(num_iterations):
         a, cost = forward_prop_1layer(W, b, X, y)
         dW, db = backward_prop_1layer(X, a, y)
@@ -60,3 +59,4 @@ def predict(W, b, X):
             y_pred[0, i] = 1
         else:
             y_pred[0, i] = 0
+    return y_pred
