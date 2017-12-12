@@ -1,15 +1,18 @@
 import string
+import re
 
 
-def load_data(max_words_count=100):
-    cur_words_count = 0
+def load_data(max_sentences_count=100):
+    sentence_count = 0
     data = []
-    with open('data/en_US.news.txt', 'r') as f_news:
-        for line in f_news:
-            cur_words_count += 1
-            if cur_words_count > max_words_count:
-                break
-            data.append(line)
+    with open('data/story.txt', 'r') as f:
+        text = f.read()
+        sentences = re.split(r' *[\.\?!][\'"\)\]]* *', text)
+    for sentence in sentences:
+        data.append(sentence)
+        sentence_count += 1
+        if sentence_count > max_sentences_count:
+            break
     return data
 
 
