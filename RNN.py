@@ -8,8 +8,8 @@ from random import randint
 alpha = 0.001
 n_input = 3
 n_hidden = 512
-num_epochs = 100
-step = 5
+num_epochs = 1
+step = 10
 
 
 def RNN(X, W, b):
@@ -26,6 +26,8 @@ if __name__ == '__main__':
     X_num, word_dict, reverse_dict = utils_rnn.word2idx(data_set)
     N = len(X_num)
     vocab_size = len(word_dict)
+
+    print(N)
 
     W = tf.Variable(tf.random_normal([n_hidden, vocab_size]))
     b = tf.Variable(tf.random_normal([vocab_size]))
@@ -51,10 +53,11 @@ if __name__ == '__main__':
     # training phase
     with tf.Session() as session:
         total_cost = 0
-        total_accuracy = 0
+        total_correct = 0
+        total_iter_step = 0
         session.run(init)
         costs = []
-        for epoch in range(num_epochs):
+        ''''for epoch in range(num_epochs):
             for i in range(N):
                 n_whole_example = len(X_num[i])
                 offset = randint(0, n_whole_example-n_input-1)
@@ -63,8 +66,10 @@ if __name__ == '__main__':
                 one_hot[X_num[i][offset + n_input]] = 1.0
                 _, acc, cost, prediction = session.run([optimizer, accuracy, cost_op, y_prediction],
                                                           feed_dict={X:cur_example, y:one_hot})
-                #total_cost += cost
-                #total_accuracy += acc
+                total_cost += cost
+                total_correct += acc
+                total_iter_step += 1
+                print(cost, acc)'''
                 #if (epoch % step == 0) and (i==N-1):
                 #    step_accuracy = total_accuracy/(step+N)
                 #    step_cost =  total_cost/(step+N)
@@ -72,6 +77,7 @@ if __name__ == '__main__':
                 #    costs.append(step_cost)
                 #    total_accuracy = 0
                 #    total_cost = 0
+                #    total_iter_step = 0
 
     #plt.plot(costs)
     #plt.show()
