@@ -2,31 +2,14 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import utils_rnn
-from sklearn.utils import shuffle
-import gru
+from random import randint
 
 
 alpha = 0.001
-max_iter = 500
 n_input = 3
 n_hidden = 512
-
-class LayerRNN:
-    def __init__(self, word_embedding, hidden_layer_sizes, dict_length, activation_f, session,
-                 W_embed, W_in, W_out, W_rec, b_rec, b_out):
-        self.D = word_embedding
-        self.M = hidden_layer_sizes
-        self.V = dict_length
-        self.f = activation_f
-        self.session = session
-
-        self.We = W_embed
-        self.Wi = W_in
-        self.Wo = W_out
-        self.Wr = W_rec
-        self.br = b_rec
-        self.bo = b_out
-        self.params = [self.We, self.Wi, self.Wo, self.Wr, self.br, self.bo]
+num_epochs = 100
+step = 5
 
 
 def RNN(X, W, b):
@@ -34,22 +17,61 @@ def RNN(X, W, b):
     X = tf.split(X, n_input, 1)
     RNN_cell = tf.contrib.rnn.BasicLSTMCell(n_hidden)
     outputs, states = tf.contrib.rnn.static_rnn(RNN_cell, X, dtype=tf.float32)
-    return tf.matmul(outputs[-1], W) + b
+    pred = tf.matmul(outputs[-1], W) + b
+    return pred
+
 
 if __name__ == '__main__':
-    dataset = utils_rnn.load_data()
-    X_num, word_dict, reverse_dict = utils_rnn.word2idx(dataset)
-
-    offset = 0
+    data_set = utils_rnn.load_data()
+    X_num, word_dict, reverse_dict = utils_rnn.word2idx(data_set)
+    N = len(X_num)
     vocab_size = len(word_dict)
+
     W = tf.Variable(tf.random_normal([n_hidden, vocab_size]))
     b = tf.Variable(tf.random_normal([vocab_size]))
 
-    X = tf.placeholder(tf.int32, [None, n_input, 1])
-    y = tf.placeholder(tf.int32, [None, vocab_size])
-    print(X, y)
+    # initialize placeholders for input/output
+    X = tf.placeholder(tf.float32, [n_input])
+    y = tf.placeholder(tf.float32, [vocab_size])
 
+    # predict and compare
+    y_prediction = RNN(X, W, b)
+    predicted_num = tf.argmax(y_prediction, 0)
+    expected_num = tf.argmax(y, 0)
+    correct_prediction = tf.equal(predicted_num, expected_num)
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-    #numeric_input = [[word_dict[str(X[i])]] for i in range(offset, offset+n_input)]
-    #symbols_onehot = np.zeros([vocab_size], dtype=float)
-    #symbols_onehot[word_dict[str(X[offset+n_input])]] = 1.0
+    # cost and optimizer
+    cost_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_prediction, labels=y))
+    optimizer = tf.train.RMSPropOptimizer(learning_rate=alpha).minimize(cost_op)
+
+    # initialize
+    init = tf.global_variables_initializer()
+
+    # training phase
+    with tf.Session() as session:
+        total_cost = 0
+        total_accuracy = 0
+        session.run(init)
+        costs = []
+        for epoch in range(num_epochs):
+            for i in range(N):
+                n_whole_example = len(X_num[i])
+                offset = randint(0, n_whole_example-n_input-1)
+                cur_example = X_num[i][offset:offset+n_input]
+                one_hot = np.zeros([vocab_size], dtype=float)
+                one_hot[X_num[i][offset + n_input]] = 1.0
+                _, acc, cost, prediction = session.run([optimizer, accuracy, cost_op, y_prediction],
+                                                          feed_dict={X:cur_example, y:one_hot})
+                #total_cost += cost
+                #total_accuracy += acc
+                #if (epoch % step == 0) and (i==N-1):
+                #    step_accuracy = total_accuracy/(step+N)
+                #    step_cost =  total_cost/(step+N)
+                #    print("Accuracy:", step_accuracy, "Cost:", step_cost)
+                #    costs.append(step_cost)
+                #    total_accuracy = 0
+                #    total_cost = 0
+
+    #plt.plot(costs)
+    #plt.show()
