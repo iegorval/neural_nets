@@ -1,24 +1,27 @@
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib import rnn
 import matplotlib.pyplot as plt
 import utils_rnn
 from random import randint
+import os
 
 
 alpha = 0.001
 n_input = 3
 n_hidden = 512
-num_epochs = 1
-step = 10
+num_epochs = 1500
+step = 1000
 
 
-def RNN(X, W, b):
-    X = tf.reshape(X, [-1, n_input])
-    X = tf.split(X, n_input, 1)
-    RNN_cell = tf.contrib.rnn.BasicLSTMCell(n_hidden)
-    outputs, states = tf.contrib.rnn.static_rnn(RNN_cell, X, dtype=tf.float32)
-    pred = tf.matmul(outputs[-1], W) + b
-    return pred
+
+
+def RNN(x, W, b):
+    x = tf.reshape(x, [-1, n_input])
+    x = tf.split(x,n_input,1)
+    rnn_cell = rnn.BasicLSTMCell(n_hidden)
+    outputs, states = rnn.static_rnn(rnn_cell, x, dtype=tf.float32)
+    return tf.matmul(outputs[-1], W) + b
 
 
 if __name__ == '__main__':
@@ -27,25 +30,24 @@ if __name__ == '__main__':
     N = len(X_num)
     vocab_size = len(word_dict)
 
-    print(N)
-
     W = tf.Variable(tf.random_normal([n_hidden, vocab_size]))
     b = tf.Variable(tf.random_normal([vocab_size]))
 
     # initialize placeholders for input/output
-    X = tf.placeholder(tf.float32, [n_input])
-    y = tf.placeholder(tf.float32, [vocab_size])
+    X = tf.placeholder(tf.float32, [None, n_input, 1])
+    y = tf.placeholder(tf.float32, [None, vocab_size])
 
     # predict and compare
     y_prediction = RNN(X, W, b)
-    predicted_num = tf.argmax(y_prediction, 0)
-    expected_num = tf.argmax(y, 0)
-    correct_prediction = tf.equal(predicted_num, expected_num)
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    correct_pred = tf.equal(tf.argmax(y_prediction, 1), tf.argmax(y, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
     # cost and optimizer
     cost_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_prediction, labels=y))
     optimizer = tf.train.RMSPropOptimizer(learning_rate=alpha).minimize(cost_op)
+
+    # create a saver
+    saver = tf.train.Saver()
 
     # initialize
     init = tf.global_variables_initializer()
@@ -55,29 +57,37 @@ if __name__ == '__main__':
         total_cost = 0
         total_correct = 0
         total_iter_step = 0
+        current_step = 0
+
         session.run(init)
         costs = []
-        ''''for epoch in range(num_epochs):
+
+        for epoch in range(num_epochs):
             for i in range(N):
                 n_whole_example = len(X_num[i])
-                offset = randint(0, n_whole_example-n_input-1)
-                cur_example = X_num[i][offset:offset+n_input]
-                one_hot = np.zeros([vocab_size], dtype=float)
-                one_hot[X_num[i][offset + n_input]] = 1.0
-                _, acc, cost, prediction = session.run([optimizer, accuracy, cost_op, y_prediction],
-                                                          feed_dict={X:cur_example, y:one_hot})
-                total_cost += cost
-                total_correct += acc
-                total_iter_step += 1
-                print(cost, acc)'''
-                #if (epoch % step == 0) and (i==N-1):
-                #    step_accuracy = total_accuracy/(step+N)
-                #    step_cost =  total_cost/(step+N)
-                #    print("Accuracy:", step_accuracy, "Cost:", step_cost)
-                #    costs.append(step_cost)
-                #    total_accuracy = 0
-                #    total_cost = 0
-                #    total_iter_step = 0
+                if n_whole_example >= 4:
+                    current_step += 1
+                    offset = randint(0, n_whole_example-n_input-1)
+                    cur_example = X_num[i][offset:offset+n_input]
+                    cur_example = np.reshape(np.array(cur_example), [-1, n_input, 1])
 
-    #plt.plot(costs)
-    #plt.show()
+                    one_hot = np.zeros([vocab_size], dtype=float)
+                    one_hot[X_num[i][offset+n_input]] = 1.0
+                    one_hot = np.reshape(one_hot, [1, -1])
+
+                    _, acc, cost, prediction = session.run([optimizer, accuracy, cost_op, y_prediction],
+                                                          feed_dict={X:cur_example, y:one_hot})
+                    total_cost += cost
+                    total_correct += acc
+                    total_iter_step += 1
+                    if total_iter_step % step == 0:
+                        step_accuracy = (total_correct/step) * 100
+                        step_cost =  total_cost/step
+                        print("Iteration:", total_iter_step, "; Average Accuracy:", step_accuracy, "%; Average Cost:", step_cost)
+                        costs.append(step_cost)
+                        total_correct = 0
+                        total_cost = 0
+        saver.save(session, os.path.join(os.getcwd(), 'RNN-model'))
+
+    plt.plot(costs)
+    plt.show()
