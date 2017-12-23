@@ -1,13 +1,14 @@
 import string
 import re
+import numpy as np
 
 
-def load_data(max_sentences_count=100):
+def load_data(fname, max_sentences_count=1000):
     sentence_count = 0
     data = []
-    with open('data/story.txt', 'r') as f:
+    with open(fname, 'r') as f:
         text = f.read()
-        sentences = re.split(r' *[\.\?!][\'"\)\]]* *', text)
+    sentences = re.split(r' *[\.\?!][\'"\)\]]* *', text)
     for sentence in sentences:
         data.append(sentence)
         sentence_count += 1
@@ -32,3 +33,17 @@ def word2idx(data):
             numeric_sentences.append(numeric_sentence)
     reverse_dict = dict(zip(word_dict.values(), word_dict.keys()))
     return numeric_sentences, word_dict, reverse_dict
+
+
+def sin(x, T):
+    return np.sin(12.0 * np.pi * x / T)
+
+
+def cos(x, T):
+    return np.cos(17.0 * np.pi * x / T) / 3
+
+
+def toy_problem(T, ampl=0.05):
+    x = np.arange(0, 2 * T + 1)
+    noise = ampl * np.random.uniform(low=-1.0, high=1.0, size=len(x))
+    return sin(x, T) # + cos(x, T) + noise
